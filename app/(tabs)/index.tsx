@@ -1,74 +1,118 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import { StyleSheet, View, Image, FlatList, TextInput, Button, ActivityIndicator, Text } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import axios from "axios";
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+interface ICharacter {
+  id: number;
+  name: string;
+  image: string;
+  status: string;
+}
 
 export default function HomeScreen() {
+  const [character, setCharacter] = useState<ICharacter[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
+  const [page, setPage] = useState<string>("1")
+
+  const fetchCharacters = async (pageNumber: string) => {
+    try {
+      const response = await axios.get(
+        `https://rickandmortyapi.com/api/character/?page=${pageNumber}`
+      );
+      setCharacter(response.data.results)
+    } catch (error) {
+      console.log("Erro ao buscar personagem, ", error)
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchCharacters(page);
+  }, [])
+
+  const renderCharacter = ({item} : {item: ICharacter}) => (
+    <View style={styles.card}>
+      <Image source={{uri: item.image}} style={styles.image} />
+      <View style={styles.info}>
+        <Text style={styles.name}> {item.name} </Text>
+        <Text style={styles.status}> {item.status} </Text>
+      </View>
+    </View>
+  )
+  
+  if (loading) {
+    return(
+      <View style={styles.loader}>
+        <ActivityIndicator size='large' color='#20f6cfff'/>
+      </View>
+    )
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12'
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <View style={{ flex: 1 }}>
+      <View style={styles.inputContainer}>
+        <Text>1/42 - </Text>
+        <TextInput style={styles.input} value={page} onChangeText={(text) => setPage(text)} placeholder='Digite o numero da pagina' />
+        <Button title='Buscar' onPress={() => fetchCharacters(page)}></Button>
+      </View>
+      <FlatList data={character} keyExtractor={(item) => item.id.toString()} renderItem={renderCharacter} contentContainerStyle={styles.list}></FlatList>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  card: {
+    flexDirection: 'row',
+    backgroundColor: '#f9f9f9',
+    marginBottom: 12,
+    borderRadius: 8,
+    overflow: 'hidden',
+    elevation: 2, // sombra para android
+    // sombra para IOS
+    shadowColor: '#000000',
+    shadowOpacity: 0.1,
+    textShadowOffset: {width: 0, height: 2},
+    shadowRadius: 8
+  },
+  image: {
+    width: 100,
+    height: 100
+  },
+  info: {
+    flex: 1,
+    padding: 12,
+    justifyContent: 'center'
+  },
+  name: {
+    fontSize: 16,
+    fontWeight: 'bold'
+  },
+  status: {
+    fontSize: 14,
+    color: '#666666'
+  },
+  loader: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  list: {
+    padding: 16
+  },
+  inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    padding: 16,
+    backgroundColor: 'f0f0f0'
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
+  input: {
+    flex: 1,
+    height: 40,
+    borderColor: '#cccccc',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    marginRight: 8
+  }
 });
